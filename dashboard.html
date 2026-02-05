@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATZENGOLD Command Center</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a1628 0%, #1a3a5c 50%, #0d2840 100%);
+            color: white;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(90deg, rgba(255,180,0,0.1) 0%, rgba(255,180,0,0.3) 50%, rgba(255,180,0,0.1) 100%);
+            border-radius: 15px;
+            border: 1px solid rgba(255,180,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            100% { left: 100%; }
+        }
+
+        /* Logo */
+        .logo-container {
+            margin-bottom: 15px;
+        }
+
+        .logo-container img {
+            max-height: 80px;
+            width: auto;
+        }
+
+        .logo-text {
+            font-size: 2.8em;
+            font-weight: 700;
+            letter-spacing: 4px;
+            background: linear-gradient(135deg, #ffd700 0%, #ff9500 50%, #ffd700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255,180,0,0.3);
+        }
+
+        .header .subtitle {
+            font-size: 0.9em;
+            opacity: 0.7;
+            margin-top: 10px;
+            letter-spacing: 3px;
+        }
+
+        .header .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 15px;
+            padding: 5px 15px;
+            background: rgba(0,255,136,0.1);
+            border-radius: 20px;
+            font-size: 0.8em;
+        }
+
+        .header .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .data-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-left: 15px;
+            padding: 3px 10px;
+            background: rgba(255,180,0,0.1);
+            border-radius: 10px;
+            font-size: 0.75em;
+            color: #ffd700;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 10px #00ff88; }
+            50% { opacity: 0.5; box-shadow: 0 0 5px #00ff88; }
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255,180,0,0.3);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .card-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+        }
+
+        .card-icon.beer { background: linear-gradient(135deg, #ffd700, #ff9500); }
+        .card-icon.crates { background: linear-gradient(135deg, #00d4ff, #0099cc); }
+        .card-icon.finance { background: linear-gradient(135deg, #00ff88, #00cc6a); }
+
+        .card-title {
+            font-size: 1.1em;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Main Metric */
+        .main-metric {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .main-metric .value {
+            font-size: 3.5em;
+            font-weight: 200;
+            line-height: 1;
+            background: linear-gradient(90deg, #fff, #aaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .main-metric .unit {
+            font-size: 0.9em;
+            opacity: 0.6;
+            margin-top: 5px;
+        }
+
+        .main-metric .trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+        }
+
+        .trend.up { background: rgba(0,255,136,0.15); color: #00ff88; }
+        .trend.down { background: rgba(255,68,68,0.15); color: #ff4444; }
+        .trend.neutral { background: rgba(255,255,255,0.1); color: #aaa; }
+
+        /* Two Column Metric */
+        .dual-metric {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            text-align: center;
+            padding: 15px 0;
+        }
+
+        .dual-metric .metric-box {
+            padding: 15px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+        }
+
+        .dual-metric .metric-value {
+            font-size: 2.2em;
+            font-weight: 300;
+            color: #fff;
+        }
+
+        .dual-metric .metric-label {
+            font-size: 0.75em;
+            opacity: 0.6;
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .metric-box.brewery {
+            border: 1px solid rgba(255,180,0,0.3);
+        }
+
+        .metric-box.partners {
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+
+        /* Sub Items */
+        .sub-items {
+            margin-top: 20px;
+        }
+
+        .sub-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .sub-item:hover {
+            background: rgba(255,255,255,0.06);
+            border-left-color: #ffd700;
+        }
+
+        .sub-item .label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sub-item .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .sub-item .name {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .sub-item .value {
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .sub-item.highlight {
+            background: rgba(255,180,0,0.1);
+            border-left-color: #ffd700;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 15px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 1s ease;
+        }
+
+        .progress-fill.warning { background: linear-gradient(90deg, #ff9500, #ffd700); }
+        .progress-fill.ok { background: linear-gradient(90deg, #00cc6a, #00ff88); }
+        .progress-fill.critical { background: linear-gradient(90deg, #cc0000, #ff4444); }
+
+        /* Chart Container */
+        .chart-container {
+            height: 200px;
+            margin-top: 15px;
+        }
+
+        /* Financial Items */
+        .financial-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .financial-row:last-child {
+            border-bottom: none;
+        }
+
+        .financial-label {
+            opacity: 0.7;
+            font-size: 0.9em;
+        }
+
+        .financial-value {
+            font-weight: 500;
+        }
+
+        .financial-value.positive { color: #00ff88; }
+        .financial-value.negative { color: #ff4444; }
+
+        /* Alert Banner */
+        .alert-banner {
+            grid-column: 1 / -1;
+            background: linear-gradient(90deg, rgba(255,68,68,0.1), rgba(255,68,68,0.2), rgba(255,68,68,0.1));
+            border: 1px solid rgba(255,68,68,0.3);
+            border-radius: 15px;
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .alert-banner.ok {
+            background: linear-gradient(90deg, rgba(0,255,136,0.05), rgba(0,255,136,0.1), rgba(0,255,136,0.05));
+            border-color: rgba(0,255,136,0.3);
+        }
+
+        .alert-icon {
+            font-size: 1.5em;
+        }
+
+        .alert-text {
+            flex: 1;
+        }
+
+        .alert-text strong {
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .alert-text span {
+            font-size: 0.85em;
+            opacity: 0.8;
+        }
+
+        /* Material calculation info */
+        .calc-info {
+            font-size: 0.7em;
+            opacity: 0.5;
+            margin-top: 3px;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            opacity: 0.5;
+            font-size: 0.8em;
+        }
+
+        /* Loading State */
+        .loading {
+            opacity: 0.5;
+            animation: loadingPulse 1.5s infinite;
+        }
+
+        @keyframes loadingPulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with Logo -->
+        <div class="header">
+            <div class="logo-container">
+                <!-- Atzengold Logo -->
+                <img src="logo.png" alt="Atzengold Logo" style="max-height: 100px; width: auto;">
+            </div>
+            <p class="subtitle">Command Center</p>
+            <div class="live-indicator">
+                <span class="live-dot"></span>
+                <span id="current-time">Live</span>
+                <span class="data-status" id="data-status">Daten werden geladen...</span>
+            </div>
+        </div>
+
+        <!-- Alert Banner -->
+        <div class="dashboard-grid">
+            <div class="alert-banner ok" id="alert-banner">
+                <span class="alert-icon">✅</span>
+                <div class="alert-text">
+                    <strong>Alle Systeme OK</strong>
+                    <span id="alert-message">Nächste Nachbestellung in ca. 13 Tagen empfohlen</span>
+                </div>
+            </div>
+
+            <!-- Card 1: Bier Bestand -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon beer">🍺</div>
+                    <span class="card-title">Bier Bestand</span>
+                </div>
+
+                <!-- Dual Metric: Brauerei + Partner -->
+                <div class="dual-metric">
+                    <div class="metric-box brewery">
+                        <div class="metric-value" id="brewery-stock">60</div>
+                        <div class="metric-label">Brauerei</div>
+                    </div>
+                    <div class="metric-box partners">
+                        <div class="metric-value" id="partner-stock">100</div>
+                        <div class="metric-label">Bei Partnern</div>
+                    </div>
+                </div>
+
+                <div class="main-metric" style="padding: 10px 0;">
+                    <div class="value" id="total-beer" style="font-size: 2.5em;">160</div>
+                    <div class="unit">Kästen gesamt</div>
+                    <div class="trend neutral" id="beer-trend">
+                        <span>≈</span> Stabil
+                    </div>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Tage bis Nachproduktion</span>
+                        <span id="days-until">~13 Tage</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ok" id="production-progress" style="width: 60%"></div>
+                    </div>
+                </div>
+
+                <div class="sub-items">
+                    <div class="sub-item highlight">
+                        <div class="label">
+                            <span class="dot" style="background: #ffd700"></span>
+                            <span class="name">🏭 Brauerei Lager</span>
+                        </div>
+                        <span class="value" id="brewery-display">60 Kästen</span>
+                    </div>
+                    <div class="sub-item">
+                        <div class="label">
+                            <span class="dot" style="background: #4285f4"></span>
+                            <span class="name">Partner 1 Nürnberg</span>
+                        </div>
+                        <span class="value" id="p1-display">80/Monat</span>
+                    </div>
+                    <div class="sub-item">
+                        <div class="label">
+                            <span class="dot" style="background: #ea4335"></span>
+                            <span class="name">Partner Berlin</span>
+                        </div>
+                        <span class="value" id="berlin-display">40/Monat</span>
+                    </div>
+                    <div class="sub-item">
+                        <div class="label">
+                            <span class="dot" style="background: #fbbc05"></span>
+                            <span class="name">Partner 2 Nürnberg</span>
+                        </div>
+                        <span class="value" id="p2-display">20/Monat</span>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="beerChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Card 2: Leergut & Material -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon crates">📦</div>
+                    <span class="card-title">Leergut & Material</span>
+                </div>
+
+                <div class="main-metric">
+                    <div class="value" id="total-crates">100</div>
+                    <div class="unit">Leerkästen gesamt</div>
+                    <div class="trend up">
+                        <span>↑</span> +5 diese Woche
+                    </div>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Rücklaufquote</span>
+                        <span>75%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ok" style="width: 75%"></div>
+                    </div>
+                </div>
+
+                <div class="sub-items">
+                    <div class="sub-item">
+                        <div class="label">
+                            <span class="dot" style="background: #ffd700"></span>
+                            <span class="name">🏭 Brauerei</span>
+                        </div>
+                        <span class="value" id="crates-brewery">50</span>
+                    </div>
+                    <div class="sub-item">
+                        <div class="label">
+                            <span class="dot" style="background: #4285f4"></span>
+                            <span class="name">Partner Lager</span>
+                        </div>
+                        <span class="value" id="crates-partners">35</span>
+                    </div>
+                    <div class="sub-item">
+                        <div class="label">
+                            <span class="dot" style="background: #00d4ff"></span>
+                            <span class="name">Transport</span>
+                        </div>
+                        <span class="value" id="crates-transport">15</span>
+                    </div>
+                    <div class="sub-item">
+                        <div class="label">
+                            <span class="dot" style="background: #9c27b0"></span>
+                            <span class="name">Etiketten</span>
+                        </div>
+                        <span class="value" id="labels-count">5.000</span>
+                    </div>
+                    <div class="sub-item">
+                        <div class="label">
+                            <span class="dot" style="background: #ff9800"></span>
+                            <span class="name">Kronkorken verfügbar</span>
+                        </div>
+                        <div>
+                            <span class="value" id="caps-available">9.200</span>
+                            <div class="calc-info" id="caps-calc">12.000 - 2.800 prod.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="cratesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Card 3: Financials -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon finance">💰</div>
+                    <span class="card-title">Financials</span>
+                </div>
+
+                <div class="dual-metric">
+                    <div class="metric-box" style="border: 1px solid rgba(0,255,136,0.3);">
+                        <div class="metric-value" id="revenue-display" style="color: #00ff88;">€4.200</div>
+                        <div class="metric-label">Umsatz</div>
+                    </div>
+                    <div class="metric-box" style="border: 1px solid rgba(0,212,255,0.3);">
+                        <div class="metric-value" id="profit-display" style="color: #00d4ff;">€1.550</div>
+                        <div class="metric-label">Gewinn</div>
+                    </div>
+                </div>
+
+                <div class="main-metric" style="padding: 10px 0;">
+                    <div class="trend up" id="profit-trend">
+                        <span>↑</span> +12% vs. Vormonat
+                    </div>
+                </div>
+
+                <div class="sub-items" style="margin-top: 10px;">
+                    <div class="financial-row">
+                        <span class="financial-label">Umsatz (<span id="cases-sold">140</span> Kästen × €30)</span>
+                        <span class="financial-value positive" id="revenue-value">€4.200</span>
+                    </div>
+                    <div class="financial-row">
+                        <span class="financial-label">Produktionskosten</span>
+                        <span class="financial-value negative" id="production-costs">-€2.100</span>
+                    </div>
+                    <div class="financial-row">
+                        <span class="financial-label">Logistik</span>
+                        <span class="financial-value negative" id="logistics-costs">-€350</span>
+                    </div>
+                    <div class="financial-row">
+                        <span class="financial-label">Marketing</span>
+                        <span class="financial-value negative" id="marketing-costs">-€200</span>
+                    </div>
+                    <div class="financial-row" style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px; margin-top: 10px;">
+                        <span class="financial-label"><strong>Marge</strong></span>
+                        <span class="financial-value positive" id="margin-display"><strong>36.9%</strong></span>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="financeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            ATZENGOLD Command Center • Letzte Aktualisierung: <span id="last-update"></span>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION - Google Sheet ID
+        // ============================================
+        const SHEET_ID = '1UF3UAfjnV4NCFOVroXDb8m8BXc80AejN2323V1nxANs';
+
+        // Data storage
+        let dashboardData = {
+            brewery: { stock: 60, production: 200 },
+            partners: {
+                berlin: { kaesten: 40 },
+                p1_nuernberg: { kaesten: 80 },
+                p2_nuernberg: { kaesten: 20 }
+            },
+            leergut: {
+                brauerei: 50,
+                berlin: 10,
+                p1_nuernberg: 20,
+                p2_nuernberg: 5,
+                transport: 15
+            },
+            material: {
+                etiketten: 5000,
+                kronkorken: 12000
+            },
+            financials: {
+                pricePerCase: 30,
+                productionCost: 15,
+                logisticsCost: 2.5,
+                marketingCost: 200
+            },
+            daysUntilProduction: 13
+        };
+
+        // ============================================
+        // TIME UPDATE
+        // ============================================
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent =
+                now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+            document.getElementById('last-update').textContent =
+                now.toLocaleDateString('de-DE') + ' ' + now.toLocaleTimeString('de-DE');
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // ============================================
+        // LIVE DATA FETCH FROM GOOGLE SHEETS
+        // ============================================
+        async function fetchSheetData(sheetName) {
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+                const response = await fetch(url);
+                const text = await response.text();
+
+                // Parse the JSONP response
+                const jsonStart = text.indexOf('(') + 1;
+                const jsonEnd = text.lastIndexOf(')');
+                const json = JSON.parse(text.substring(jsonStart, jsonEnd));
+
+                return json.table;
+            } catch (error) {
+                console.error(`Error fetching ${sheetName}:`, error);
+                return null;
+            }
+        }
+
+        async function loadLiveData() {
+            document.getElementById('data-status').textContent = 'Lade Live-Daten...';
+
+            try {
+                // Fetch Brauerei-Bestand
+                const brauereiData = await fetchSheetData('Brauerei-Bestand');
+                if (brauereiData && brauereiData.rows && brauereiData.rows.length > 0) {
+                    const row = brauereiData.rows[0].c;
+                    if (row[3]) dashboardData.brewery.stock = row[3].v || 60;
+                    if (row[1]) dashboardData.brewery.production = row[1].v || 200;
+                    if (row[5]) dashboardData.daysUntilProduction = row[5].v || 13;
+                }
+
+                // Fetch Partner-Lager
+                const partnerData = await fetchSheetData('Partner-Lager');
+                if (partnerData && partnerData.rows) {
+                    partnerData.rows.forEach(row => {
+                        if (row.c && row.c[0]) {
+                            const partner = row.c[0].v;
+                            const kaesten = row.c[2] ? row.c[2].v : 0;
+                            if (partner && partner.includes('Berlin')) {
+                                dashboardData.partners.berlin.kaesten = kaesten;
+                            } else if (partner && partner.includes('1')) {
+                                dashboardData.partners.p1_nuernberg.kaesten = kaesten;
+                            } else if (partner && partner.includes('2')) {
+                                dashboardData.partners.p2_nuernberg.kaesten = kaesten;
+                            }
+                        }
+                    });
+                }
+
+                // Fetch Leergut
+                const leergutData = await fetchSheetData('Leergut');
+                if (leergutData && leergutData.rows) {
+                    leergutData.rows.forEach(row => {
+                        if (row.c && row.c[0]) {
+                            const standort = row.c[0].v;
+                            const kaesten = row.c[1] ? row.c[1].v : 0;
+                            if (standort) {
+                                if (standort.includes('Brauerei')) dashboardData.leergut.brauerei = kaesten;
+                                else if (standort.includes('Berlin')) dashboardData.leergut.berlin = kaesten;
+                                else if (standort.includes('P1') || standort.includes('1')) dashboardData.leergut.p1_nuernberg = kaesten;
+                                else if (standort.includes('P2') || standort.includes('2')) dashboardData.leergut.p2_nuernberg = kaesten;
+                                else if (standort.includes('Transport')) dashboardData.leergut.transport = kaesten;
+                            }
+                        }
+                    });
+                }
+
+                document.getElementById('data-status').textContent = '✓ Live-Daten geladen';
+                document.getElementById('data-status').style.color = '#00ff88';
+
+                updateDashboard();
+
+            } catch (error) {
+                console.error('Error loading live data:', error);
+                document.getElementById('data-status').textContent = '⚠ Offline-Modus';
+                document.getElementById('data-status').style.color = '#ff9500';
+                updateDashboard();
+            }
+        }
+
+        // ============================================
+        // UPDATE DASHBOARD WITH DATA
+        // ============================================
+        function updateDashboard() {
+            const d = dashboardData;
+
+            // Calculate totals
+            const totalPartnerMonthly = d.partners.berlin.kaesten + d.partners.p1_nuernberg.kaesten + d.partners.p2_nuernberg.kaesten;
+            const totalBeer = d.brewery.stock + Math.round(totalPartnerMonthly * 0.7); // Estimated partner stock
+
+            // Beer Stock
+            document.getElementById('brewery-stock').textContent = d.brewery.stock;
+            document.getElementById('partner-stock').textContent = Math.round(totalPartnerMonthly * 0.7);
+            document.getElementById('total-beer').textContent = totalBeer;
+            document.getElementById('brewery-display').textContent = d.brewery.stock + ' Kästen';
+            document.getElementById('p1-display').textContent = d.partners.p1_nuernberg.kaesten + '/Monat';
+            document.getElementById('berlin-display').textContent = d.partners.berlin.kaesten + '/Monat';
+            document.getElementById('p2-display').textContent = d.partners.p2_nuernberg.kaesten + '/Monat';
+            document.getElementById('days-until').textContent = '~' + Math.round(d.daysUntilProduction) + ' Tage';
+
+            // Progress bar
+            const progressPercent = Math.min(100, (d.daysUntilProduction / 30) * 100);
+            document.getElementById('production-progress').style.width = progressPercent + '%';
+            if (d.daysUntilProduction < 7) {
+                document.getElementById('production-progress').className = 'progress-fill critical';
+            } else if (d.daysUntilProduction < 14) {
+                document.getElementById('production-progress').className = 'progress-fill warning';
+            } else {
+                document.getElementById('production-progress').className = 'progress-fill ok';
+            }
+
+            // Leergut & Material
+            const totalCrates = d.leergut.brauerei + d.leergut.berlin + d.leergut.p1_nuernberg + d.leergut.p2_nuernberg + d.leergut.transport;
+            const partnerCrates = d.leergut.berlin + d.leergut.p1_nuernberg + d.leergut.p2_nuernberg;
+
+            // Calculate Kronkorken: Total - (produced bottles = monthly cases * 20)
+            const producedBottles = totalPartnerMonthly * 20;
+            const availableCaps = d.material.kronkorken - producedBottles;
+
+            document.getElementById('total-crates').textContent = totalCrates;
+            document.getElementById('crates-brewery').textContent = d.leergut.brauerei;
+            document.getElementById('crates-partners').textContent = partnerCrates;
+            document.getElementById('crates-transport').textContent = d.leergut.transport;
+            document.getElementById('labels-count').textContent = d.material.etiketten.toLocaleString('de-DE');
+            document.getElementById('caps-available').textContent = availableCaps.toLocaleString('de-DE');
+            document.getElementById('caps-calc').textContent = d.material.kronkorken.toLocaleString('de-DE') + ' - ' + producedBottles.toLocaleString('de-DE') + ' prod.';
+
+            // Financials
+            const revenue = totalPartnerMonthly * d.financials.pricePerCase;
+            const productionCosts = totalPartnerMonthly * d.financials.productionCost;
+            const logisticsCosts = totalPartnerMonthly * d.financials.logisticsCost;
+            const marketingCosts = d.financials.marketingCost;
+            const profit = revenue - productionCosts - logisticsCosts - marketingCosts;
+            const margin = (profit / revenue * 100).toFixed(1);
+
+            document.getElementById('revenue-display').textContent = '€' + revenue.toLocaleString('de-DE');
+            document.getElementById('profit-display').textContent = '€' + profit.toLocaleString('de-DE');
+            document.getElementById('cases-sold').textContent = totalPartnerMonthly;
+            document.getElementById('revenue-value').textContent = '€' + revenue.toLocaleString('de-DE');
+            document.getElementById('production-costs').textContent = '-€' + productionCosts.toLocaleString('de-DE');
+            document.getElementById('logistics-costs').textContent = '-€' + Math.round(logisticsCosts).toLocaleString('de-DE');
+            document.getElementById('marketing-costs').textContent = '-€' + marketingCosts.toLocaleString('de-DE');
+            document.getElementById('margin-display').innerHTML = '<strong>' + margin + '%</strong>';
+
+            // Update alert based on days until production
+            const alertBanner = document.getElementById('alert-banner');
+            const alertMessage = document.getElementById('alert-message');
+            if (d.daysUntilProduction < 7) {
+                alertBanner.className = 'alert-banner';
+                alertBanner.querySelector('.alert-icon').textContent = '⚠️';
+                alertBanner.querySelector('strong').textContent = 'Achtung: Nachproduktion bald erforderlich!';
+                alertMessage.textContent = 'Nur noch ca. ' + Math.round(d.daysUntilProduction) + ' Tage bis zur nächsten Produktion';
+            } else {
+                alertBanner.className = 'alert-banner ok';
+                alertBanner.querySelector('.alert-icon').textContent = '✅';
+                alertBanner.querySelector('strong').textContent = 'Alle Systeme OK';
+                alertMessage.textContent = 'Nächste Nachbestellung in ca. ' + Math.round(d.daysUntilProduction) + ' Tagen empfohlen';
+            }
+
+            // Update charts
+            updateCharts();
+        }
+
+        // ============================================
+        // CHARTS
+        // ============================================
+        Chart.defaults.color = 'rgba(255,255,255,0.7)';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.1)';
+
+        let beerChart, cratesChart, financeChart;
+
+        function updateCharts() {
+            const d = dashboardData;
+            const totalPartnerMonthly = d.partners.berlin.kaesten + d.partners.p1_nuernberg.kaesten + d.partners.p2_nuernberg.kaesten;
+
+            // Beer Distribution Chart (Donut) - Including Brewery
+            if (beerChart) beerChart.destroy();
+            beerChart = new Chart(document.getElementById('beerChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Brauerei', 'P1 Nürnberg', 'Berlin', 'P2 Nürnberg'],
+                    datasets: [{
+                        data: [d.brewery.stock, d.partners.p1_nuernberg.kaesten, d.partners.berlin.kaesten, d.partners.p2_nuernberg.kaesten],
+                        backgroundColor: ['#ffd700', '#4285f4', '#ea4335', '#fbbc05'],
+                        borderWidth: 0,
+                        spacing: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // Crates Distribution Chart (Bar)
+            if (cratesChart) cratesChart.destroy();
+            cratesChart = new Chart(document.getElementById('cratesChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Brauerei', 'Berlin', 'P1', 'P2', 'Transport'],
+                    datasets: [{
+                        label: 'Leerkästen',
+                        data: [d.leergut.brauerei, d.leergut.berlin, d.leergut.p1_nuernberg, d.leergut.p2_nuernberg, d.leergut.transport],
+                        backgroundColor: ['#ffd700', '#ea4335', '#4285f4', '#fbbc05', '#00d4ff'],
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Finance Chart (Combined Bar + Line: Umsatz bars + Gewinn line)
+            const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun'];
+            const revenueData = [3600, 3800, 3900, 4000, 4100, 4200];
+            const profitData = [1200, 1350, 1280, 1420, 1480, 1550];
+
+            if (financeChart) financeChart.destroy();
+            financeChart = new Chart(document.getElementById('financeChart'), {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: 'Umsatz €',
+                            data: revenueData,
+                            backgroundColor: 'rgba(0,255,136,0.4)',
+                            borderColor: '#00ff88',
+                            borderWidth: 1,
+                            borderRadius: 5,
+                            order: 2
+                        },
+                        {
+                            label: 'Gewinn €',
+                            data: profitData,
+                            type: 'line',
+                            borderColor: '#00d4ff',
+                            backgroundColor: 'rgba(0,212,255,0.1)',
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#00d4ff',
+                            fill: true,
+                            tension: 0.4,
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 10,
+                                font: { size: 10 }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============================================
+        // INITIALIZE
+        // ============================================
+        loadLiveData();
+
+        // Refresh data every 5 minutes
+        setInterval(loadLiveData, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
